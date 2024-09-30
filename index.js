@@ -421,6 +421,7 @@ app.post('/handle-leave/:id', authenticateJWT, authorizeManagerOrHR, async (req,
 
     const leaveRequest = leaveRequestResult.recordset[0];
 
+
     let updateQuery = '';
     let updateParams = [];
 
@@ -535,7 +536,7 @@ app.get('/leave-balance', authenticateJWT, async (req, res) => {
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
-app.post('/attendance-correction', authenticateJWT,authorizeManagerOrHR, async (req, res) => {
+app.post('/attendance-correction', authenticateJWT, authorizeEmployee, async (req, res) => {
   const { absentDate, reason } = req.body;
   const { empl_code } = req.user; // Extract empl_code from authenticated user
 
@@ -636,7 +637,7 @@ app.post('/adjust-leave-balance', authenticateJWT, authorizeManagerOrHR, async (
   }
 });
 
-app.post('/bulk-upload-leave', authenticateJWT,authorizeManagerOrHR, upload.single('file'), async (req, res) => {
+app.post('/bulk-upload-leave', authenticateJWT, authorizeManagerOrHR, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -818,7 +819,7 @@ app.get('/calendar', authenticateJWT, authorizeEmployee, async (req, res) => {
 });
 
 // Approve Attendance Correction Request
-app.post('/approve-attendance-correction/:id', authenticateJWT,authorizeManagerOrHR, async (req, res) => {
+app.post('/approve-attendance-correction/:id', authenticateJWT, authorizeManagerOrHR, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body; // Expecting a body parameter to indicate the approval status
   const { empl_code } = req.user; // Extract empl_code from authenticated user
@@ -867,7 +868,7 @@ app.post('/approve-attendance-correction/:id', authenticateJWT,authorizeManagerO
 
 // Get Attendance Correction Requests for the authenticated user
 // Get Attendance Correction Requests for the authenticated user or all for managers
-app.get('/attendance-correction', authenticateJWT,authorizeManagerOrHR, async (req, res) => {
+app.get('/attendance-correction', authenticateJWT, authorizeManagerOrHR, async (req, res) => {
   try {
     const pool = await sql.connect(config1);
 
@@ -1393,7 +1394,7 @@ app.get('/rejected-leavese', authenticateJWT, async (req, res) => {
     sql.close();
   }
 });
-app.get('/approved-leaves-manager', authenticateJWT, authorizeManagerOrHR,async (req, res) => {
+app.get('/approved-leaves-manager', authenticateJWT, authorizeManagerOrHR, async (req, res) => {
   try {
     // Open SQL connection
     const pool = await sql.connect(config1);
@@ -1434,7 +1435,7 @@ app.get('/rejected-leaves', authenticateJWT, async (req, res) => {
   try {
     const pool = await sql.connect(config1);
     const request = pool.request();
-    
+
     let query = '';
 
     // Fetch rejected leaves based on designation
@@ -1463,7 +1464,7 @@ app.get('/rejected-leaves', authenticateJWT, async (req, res) => {
   } catch (err) {
     console.error('Error fetching rejected leaves:', err);
     res.status(500).json({ message: 'Internal server error', error: err.message });
-  } 
+  }
 });
 
 
@@ -1510,7 +1511,6 @@ app.post('/schedule-meeting', async (req, res) => {
 
 // Start the server
 console.log(Date);
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`server is running at ${PORT}`))
+
