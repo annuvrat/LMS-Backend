@@ -6,8 +6,8 @@ const multer = require('multer');
 const ExcelJS = require('exceljs');
 const moment = require('moment-timezone');
 require('dotenv').config();
-
-// const upload = require('./LMS/uploadMiddleware')
+const authenticateJWT = require('./auth');
+const { authorizeEmployee, authorizeManagerOrHR, authorizeManager, authorizeHR } = require('./authorize');
 const config1 = require('./config1');
 const config2 = require('./config2');
 const currentTime = moment().tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss');
@@ -15,79 +15,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 
-
-console.log(currentTime); // Outputs the current time in 'Asia/Kolkata' time zone
+console.log(currentTime); 
 
 
 
 const jwtSecret = process.env.JWT_SECRET;
 
-// Middleware for authenticating JWT tokens
-const authenticateJWT = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
-  if (!token) {
-    return res.status(401).json({ message: 'Access denied. No token provided.' });
-  }
 
-  try {
-    const decoded = jwt.verify(token, jwtSecret);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    console.error('JWT verification error:', err);
-    res.status(400).json({ message: 'Invalid token.' });
-  }
-};
 
-// Middleware to authorize employee with various designations
-const authorizeEmployee = (req, res, next) => {
-  const validDesignations = [
-    'Employee',
-    'Software Engineer',
-    'SDE',
-    'Developer',
-    'QA Engineer',
-    'Support Engineer',
-    'Manager',
-    'Hr'
-  ];
 
-  if (!validDesignations.includes(req.user.designation)) {
-    return res.status(403).json({ message: 'Access denied. Not an authorized employee.' });
-  }
 
-  next();
-};
-
-// Middleware to authorize Manager role
-const authorizeManager = (req, res, next) => {
-  if (req.user.designation !== 'Manager') {
-    return res.status(403).json({ message: 'Access denied. Not a manager.' });
-  }
-  next();
-};
-
-// Middleware to authorize HR role
-const authorizeHR = (req, res, next) => {
-  if (req.user.designation !== 'HR') {
-    return res.status(403).json({ message: 'Access denied. Not HR.' });
-  }
-  next();
-};
-
-const authorizeManagerOrHR = (req, res, next) => {
-  if (req.user.designation !== 'Manager' && req.user.designation !== 'HR') {
-    return res.status(403).json({ message: 'Access denied. Not authorized.' });
-  }
-  next();
-};
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 
 
 // Sample login endpoint
@@ -536,7 +478,7 @@ app.get('/leave-balance', authenticateJWT, async (req, res) => {
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
-app.post('/attendance-correction', authenticateJWT, authorizeEmployee, async (req, res) => {
+app.post('/attendance-correction', authenticateJWT,authorizeEmployee, async (req, res) => {
   const { absentDate, reason } = req.body;
   const { empl_code } = req.user; // Extract empl_code from authenticated user
 
@@ -637,7 +579,7 @@ app.post('/adjust-leave-balance', authenticateJWT, authorizeManagerOrHR, async (
   }
 });
 
-app.post('/bulk-upload-leave', authenticateJWT, authorizeManagerOrHR, upload.single('file'), async (req, res) => {
+app.post('/bulk-upload-leave', authenticateJWT,authorizeManagerOrHR, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -819,7 +761,7 @@ app.get('/calendar', authenticateJWT, authorizeEmployee, async (req, res) => {
 });
 
 // Approve Attendance Correction Request
-app.post('/approve-attendance-correction/:id', authenticateJWT, authorizeManagerOrHR, async (req, res) => {
+app.post('/approve-attendance-correction/:id', authenticateJWT,authorizeManagerOrHR, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body; // Expecting a body parameter to indicate the approval status
   const { empl_code } = req.user; // Extract empl_code from authenticated user
@@ -868,7 +810,7 @@ app.post('/approve-attendance-correction/:id', authenticateJWT, authorizeManager
 
 // Get Attendance Correction Requests for the authenticated user
 // Get Attendance Correction Requests for the authenticated user or all for managers
-app.get('/attendance-correction', authenticateJWT, authorizeManagerOrHR, async (req, res) => {
+app.get('/attendance-correction', authenticateJWT,authorizeManagerOrHR, async (req, res) => {
   try {
     const pool = await sql.connect(config1);
 
@@ -1394,7 +1336,7 @@ app.get('/rejected-leavese', authenticateJWT, async (req, res) => {
     sql.close();
   }
 });
-app.get('/approved-leaves-manager', authenticateJWT, authorizeManagerOrHR, async (req, res) => {
+app.get('/approved-leaves-manager', authenticateJWT, authorizeManagerOrHR,async (req, res) => {
   try {
     // Open SQL connection
     const pool = await sql.connect(config1);
@@ -1435,7 +1377,7 @@ app.get('/rejected-leaves', authenticateJWT, async (req, res) => {
   try {
     const pool = await sql.connect(config1);
     const request = pool.request();
-
+    
     let query = '';
 
     // Fetch rejected leaves based on designation
@@ -1464,7 +1406,7 @@ app.get('/rejected-leaves', authenticateJWT, async (req, res) => {
   } catch (err) {
     console.error('Error fetching rejected leaves:', err);
     res.status(500).json({ message: 'Internal server error', error: err.message });
-  }
+  } 
 });
 
 
@@ -1512,5 +1454,5 @@ app.post('/schedule-meeting', async (req, res) => {
 // Start the server
 console.log(Date);
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`server is running at ${PORT}`))
+app.listen(PORT,()=>console.log(`server is running at ${PORT}`))
 
