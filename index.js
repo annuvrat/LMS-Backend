@@ -9,7 +9,7 @@ require('dotenv').config();
 const authenticateJWT = require('./auth');
 const { authorizeEmployee, authorizeManagerOrHR, authorizeManager, authorizeHR } = require('./authorize');
 const config1 = require('./config1');
-const config2 = require('./config2');
+// const config2 = require('./config2');
 const currentTime = moment().tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss');
 const app = express();
 app.use(cors());
